@@ -1,0 +1,11 @@
+{
+  "name": "translate_me_please_bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for AI translation and voice messages transcriptions",
+  "main": "translate_me_please_bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

@@ -348,9 +348,7 @@ export default async function handler(req, res) {
       await sendChatAction(chatId, 'typing');
       try {
         const transcription = await processVoiceMessage(fileId);
-        console.log(transcription)
         const correctedTranscription = await correctText(transcription);
-        console.log(correctedTranscription)
         await sendTelegramMessage(chatId, correctedTranscription);
         text = correctedTranscription;
       } catch (error) {

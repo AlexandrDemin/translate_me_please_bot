@@ -1,16 +1,19 @@
 {
-  "name": "translate_me_please_bot",
+  "name": "telegram-translate-bot",
   "version": "1.0.0",
-  "description": "Telegram bot for AI translation and voice messages transcriptions",
-  "main": "translate_me_please_bot.js",
+  "description": "Telegram translation bot",
+  "type": "module",
+  "main": "api/webhook.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vercel dev",
+    "deploy": "vercel deploy"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.36.3",
-    "axios": "^1.7.9",
-    "openai": "^4.82.0"
+    "@anthropic-ai/sdk": "^0.18.0",
+    "axios": "^1.6.7",
+    "openai": "^4.28.0"
+  },
+  "devDependencies": {
+    "@vercel/node": "^3.0.17"
   }
 }

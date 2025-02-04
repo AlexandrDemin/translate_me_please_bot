@@ -368,13 +368,13 @@ function isFormatSupported(mimeType) {
   return supportedFormats.includes(mimeType);
 }
 
-async function getFile(fileId) {
+async function downloadTelegramFile(fileId) {
   const response = await axios.get(`${TELEGRAM_API}/getFile?file_id=${fileId}`);
   return `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${response.data.result.file_path}`;
 }
 
 async function processVoiceMessage(fileId) {
-  const fileUrl = await getFile(fileId);
+  const fileUrl = await downloadTelegramFile(fileId);
   const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
   
   // Create a File object from the audio data

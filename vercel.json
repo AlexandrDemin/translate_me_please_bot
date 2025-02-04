@@ -3,6 +3,9 @@
     "builds": [
         {
         "src": "api/webhook.js",
+        "config": {
+            "installCommand": "bash build.sh && npm install"
+        },
         "use": "@vercel/node"
         }
     ],

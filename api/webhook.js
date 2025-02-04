@@ -19,13 +19,13 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4-turbo-preview";
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest";
 const START_MESSAGE = process.env.START_MESSAGE || `Здравствуйте 👋 Готов помочь с переводом. Просто отправьте мне текст или голосовое сообщение, которое нужно перевести.`;
 
-// const openai = new OpenAI({
-//   apiKey: OPENAI_API_KEY,
-// });
+const openai = new OpenAI({
+  apiKey: OPENAI_API_KEY,
+});
 
-// const anthropic = new Anthropic({
-//   apiKey: ANTHROPIC_API_KEY
-// });
+const anthropic = new Anthropic({
+  apiKey: ANTHROPIC_API_KEY
+});
 
 // Helper functions
 async function sendTelegramMessage(chatId, text) {

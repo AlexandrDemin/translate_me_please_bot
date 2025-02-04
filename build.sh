@@ -1,5 +1,5 @@
 #!/bin/bash
-
+echo "Build script started"
 # Check if /tmp exists, if not create it with correct permissions
 if [ ! -d "/tmp" ]; then
     mkdir /tmp
@@ -15,3 +15,5 @@ chmod +x /tmp/ffmpeg
 if [ -d "/tmp/ffmpeg" ]; then
     echo "/tmp/ffmpeg exists"
 fi
+
+echo "Build script ended"

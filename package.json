@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vercel dev",
     "deploy": "vercel deploy",
-    "build": "chmod +x build.sh && ./build.sh"
+    "postinstall": "chmod +x build.sh && ./build.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.18.0",

@@ -444,7 +444,7 @@ export default async function handler(req, res) {
         await sendTelegramMessage(directMessageChatId, directMessage);
       }
     } else {
-      await sendTelegramMessage(chatId, 'Извините, пока я понимаю только текстовые и голосовые сообщения');
+      await sendTelegramMessage(chatId, 'Извините, пока я понимаю только текстовые, голосовые и аудио сообщения');
     }
 
     res.status(200).json({ ok: true });

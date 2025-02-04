@@ -6,6 +6,12 @@ if [ ! -d "/tmp" ]; then
     chmod 777 /tmp
 fi
 
+echo "/tmp folder exists"
+
 # Copy ffmpeg to /tmp
 cp bin/ffmpeg /tmp/ffmpeg
 chmod +x /tmp/ffmpeg
+
+if [ -d "/tmp/ffmpeg" ]; then
+    echo "/tmp/ffmpeg exists"
+fi

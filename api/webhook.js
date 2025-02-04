@@ -1,6 +1,12 @@
 import OpenAI from 'openai';
 import { Anthropic } from '@anthropic-ai/sdk';
 import axios from 'axios';
+import ffmpeg from 'fluent-ffmpeg';
+import { writeFile, unlink } from 'fs/promises';
+import { join } from 'path';
+
+// Set ffmpeg path
+ffmpeg.setFfmpegPath('./ffmpeg');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
@@ -294,6 +300,74 @@ async function sendContact(chatId, phoneNumber, firstName, options = {}) {
 }
 
 // Voice message handling with OpenAI
+
+async function convertAudio(inputBuffer, fromFormat, toFormat) {
+  const inputPath = join('/tmp', `input.${fromFormat}`);
+  const outputPath = join('/tmp', `output.${toFormat}`);
+
+  try {
+    // Write input buffer to temporary file
+    await writeFile(inputPath, inputBuffer);
+
+    // Convert using ffmpeg
+    await new Promise((resolve, reject) => {
+      ffmpeg()
+        .input(inputPath)
+        .toFormat(toFormat)
+        .on('end', resolve)
+        .on('error', reject)
+        .save(outputPath);
+    });
+
+    // Read the converted file
+    const outputBuffer = await readFile(outputPath);
+
+    // Cleanup
+    await Promise.all([
+      unlink(inputPath),
+      unlink(outputPath)
+    ]);
+
+    return outputBuffer;
+  } catch (error) {
+    // Cleanup on error
+    try {
+      await Promise.all([
+        unlink(inputPath).catch(() => {}),
+        unlink(outputPath).catch(() => {})
+      ]);
+    } catch (e) {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+}
+
+async function transcribeFile(audioFile) {
+  const transcription = await openai.audio.transcriptions.create({
+    file: audioFile,
+    model: "whisper-1",
+  });
+  return transcription.text;
+}
+
+function isFormatSupported(mimeType) {
+  const supportedFormats = [
+    'audio/flac', 
+    'audio/m4a',
+    'audio/mp3', 
+    'audio/mpeg',
+    'audio/mpga',
+    'audio/oga',
+    'audio/ogg',
+    'audio/wav',
+    'audio/webm',
+    'video/mp4',
+    'video/webm'
+  ];
+  return supportedFormats.includes(mimeType);
+}
+
 async function getFile(fileId) {
   const response = await axios.get(`${TELEGRAM_API}/getFile?file_id=${fileId}`);
   return `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${response.data.result.file_path}`;
@@ -306,37 +380,33 @@ async function processVoiceMessage(fileId) {
   // Create a File object from the audio data
   const audioFile = new File([response.data], 'audio.ogg', { type: 'audio/ogg' });
 
-  const transcription = await openai.audio.transcriptions.create({
-    file: audioFile,
-    model: "whisper-1",
-  });
-
-  return transcription.text;
+  return await transcribeFile(audioFile);
 }
 
 async function processAudioFile(fileId, mimeType) {
-  const fileUrl = await getFile(fileId);
-  const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+  const fileData = await downloadTelegramFile(fileId);
   
-  // Get file extension from mime type
-  const extensions = {
-    'audio/opus': 'opus',
-    'audio/mpeg': 'mp3',
-    'audio/wav': 'wav',
-    'audio/ogg': 'ogg',
-    'audio/m4a': 'm4a',
-    'audio/aac': 'aac',
-  };
-  const extension = extensions[mimeType] || 'audio';
+  let audioData = fileData;
+  let finalMimeType = mimeType;
+
+  // Convert unsupported formats
+  if (!isFormatSupported(mimeType)) {
+    const fromFormat = mimeType.split('/')[1];  // e.g., 'opus' from 'audio/opus'
+    const toFormat = 'ogg';  // Convert everything to ogg as it's well supported
+    
+    try {
+      audioData = await convertAudio(fileData, fromFormat, toFormat);
+      finalMimeType = 'audio/ogg';
+    } catch (error) {
+      console.error('Conversion error:', error);
+      throw new Error(`Failed to convert from ${fromFormat} to ${toFormat}`);
+    }
+  }
+
+  const extension = finalMimeType.split('/')[1];
+  const audioFile = new File([audioData], `audio.${extension}`, { type: finalMimeType });
   
-  const audioFile = new File([response.data], `audio.${extension}`, { type: mimeType });
-
-  const transcription = await openai.audio.transcriptions.create({
-    file: audioFile,
-    model: "whisper-1",
-  });
-
-  return transcription.text;
+  return await transcribeFile(audioFile);
 }
 
 export default async function handler(req, res) {

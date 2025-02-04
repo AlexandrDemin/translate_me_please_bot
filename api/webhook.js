@@ -8,13 +8,6 @@ import { join } from 'path';
 // Set ffmpeg path
 ffmpeg.setFfmpegPath('/tmp/ffmpeg');
 
-try {
-  const { readdir } = await import('fs/promises');
-  console.log('tmp contents:', await readdir('/tmp'));
-} catch (e) {
-  console.error('readdir error:', e);
-}
-
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -309,6 +302,14 @@ async function sendContact(chatId, phoneNumber, firstName, options = {}) {
 // Voice message handling with OpenAI
 
 async function convertAudio(inputBuffer, fromFormat, toFormat) {
+
+  try {
+    const { readdir } = await import('fs/promises');
+    console.log('tmp contents:', await readdir('/tmp'));
+  } catch (e) {
+    console.error('readdir error:', e);
+  }
+
   const inputPath = join('/tmp', `input.${fromFormat}`);
   const outputPath = join('/tmp', `output.${toFormat}`);
 

@@ -10,7 +10,7 @@ echo "/tmp folder exists"
 
 # Copy ffmpeg to /tmp
 cp bin/ffmpeg /tmp/ffmpeg
-chmod +x /tmp/ffmpeg
+chmod 755 /tmp/ffmpeg
 
 if [ -f "/tmp/ffmpeg" ]; then
     echo "/tmp/ffmpeg exists"

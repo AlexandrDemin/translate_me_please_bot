@@ -19,13 +19,13 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4-turbo-preview";
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest";
 const START_MESSAGE = process.env.START_MESSAGE || `Здравствуйте 👋 Готов помочь с переводом. Просто отправьте мне текст или голосовое сообщение, которое нужно перевести.`;
 
-const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY,
-});
+// const openai = new OpenAI({
+//   apiKey: OPENAI_API_KEY,
+// });
 
-const anthropic = new Anthropic({
-  apiKey: ANTHROPIC_API_KEY
-});
+// const anthropic = new Anthropic({
+//   apiKey: ANTHROPIC_API_KEY
+// });
 
 // Helper functions
 async function sendTelegramMessage(chatId, text) {
@@ -301,40 +301,40 @@ async function sendContact(chatId, phoneNumber, firstName, options = {}) {
 }
 
 // Voice message handling with OpenAI
-
 async function convertAudio(inputBuffer, fromFormat, toFormat) {
-
-  let ffmpegPath = '/tmp/ffmpeg';
-
-  try {
-    const { readdir } = await import('fs/promises');
-    let tmpContents = await readdir('/tmp');
-    if (!tmpContents.includes('ffmpeg')) {
-      await copyFile(join(process.cwd(), 'bin', 'ffmpeg'), ffmpegPath);
-      await execAsync(`chmod +x ${ffmpegPath}`);
-    }
-    
-    // Set ffmpeg path after copying
-    ffmpeg.setFfmpegPath(ffmpegPath);
-
-  } catch (e) {
-    console.error('readdir error:', e);
-  }
-
   const inputPath = join('/tmp', `input.${fromFormat}`);
   const outputPath = join('/tmp', `output.${toFormat}`);
+  const ffmpegPath = join('/tmp', 'ffmpeg');
 
   try {
+    // Check and copy ffmpeg if needed
+    const { readdir } = await import('fs/promises');
+    const tmpContents = await readdir('/tmp');
+    if (!tmpContents.includes('ffmpeg')) {
+      await copyFile(join(process.cwd(), 'bin', 'ffmpeg'), ffmpegPath);
+      await execAsync('chmod +x /tmp/ffmpeg');
+    }
+
     // Write input buffer to temporary file
     await writeFile(inputPath, inputBuffer);
 
-    // Convert using ffmpeg
+    // Convert using ffmpeg with format-specific options
     await new Promise((resolve, reject) => {
-      ffmpeg()
-        .input(inputPath)
+      let command = ffmpeg().input(inputPath);
+      
+      // Add input codec based on format
+      if (fromFormat === 'opus') {
+        command = command.inputOptions(['-acodec libopus']);
+      }
+
+      command
         .toFormat(toFormat)
+        .audioCodec('libvorbis')  // For ogg output
         .on('end', resolve)
-        .on('error', reject)
+        .on('error', (err) => {
+          console.error('FFmpeg error:', err);
+          reject(err);
+        })
         .save(outputPath);
     });
 
@@ -343,13 +343,13 @@ async function convertAudio(inputBuffer, fromFormat, toFormat) {
 
     // Cleanup
     await Promise.all([
-      unlink(inputPath),
-      unlink(outputPath)
+      unlink(inputPath).catch(() => {}),
+      unlink(outputPath).catch(() => {})
     ]);
 
     return outputBuffer;
   } catch (error) {
-    // Cleanup on error
+    console.error('Conversion error details:', error);
     try {
       await Promise.all([
         unlink(inputPath).catch(() => {}),

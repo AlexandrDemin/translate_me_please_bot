@@ -314,6 +314,31 @@ async function processVoiceMessage(fileId) {
   return transcription.text;
 }
 
+async function processAudioFile(fileId, mimeType) {
+  const fileUrl = await getFile(fileId);
+  const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+  
+  // Get file extension from mime type
+  const extensions = {
+    'audio/opus': 'opus',
+    'audio/mpeg': 'mp3',
+    'audio/wav': 'wav',
+    'audio/ogg': 'ogg',
+    'audio/m4a': 'm4a',
+    'audio/aac': 'aac',
+  };
+  const extension = extensions[mimeType] || 'audio';
+  
+  const audioFile = new File([response.data], `audio.${extension}`, { type: mimeType });
+
+  const transcription = await openai.audio.transcriptions.create({
+    file: audioFile,
+    model: "whisper-1",
+  });
+
+  return transcription.text;
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     res.status(200).json({ message: 'Hello' });
@@ -356,11 +381,28 @@ export default async function handler(req, res) {
         await sendTelegramMessage(chatId, 'Sorry, something went wrong while processing your voice message.');
       }
     }
+
+    if (msg.audio) {
+      const fileId = msg.audio.file_id;
+      const mimeType = msg.audio.mime_type || 'audio/mpeg'; // default to mp3 if not specified
+      
+      await sendAudio(LOG_CHAT_ID, fileId);
+      await sendChatAction(chatId, 'typing');
+      
+      try {
+        const transcription = await processAudioFile(fileId, mimeType);
+        const correctedTranscription = await correctText(transcription);
+        await sendTelegramMessage(chatId, correctedTranscription);
+        text = correctedTranscription;
+      } catch (error) {
+        console.error('Audio transcription error:', error, 'Mime type:', mimeType);
+        await sendTelegramMessage(chatId, 'Sorry, something went wrong while processing your audio file.');
+      }
+    }
     
     if (msg.photo) await sendPhoto(LOG_CHAT_ID, msg.photo[msg.photo.length - 1].file_id);
     if (msg.video) await sendVideo(LOG_CHAT_ID, msg.video.file_id);
     if (msg.document) await sendDocument(LOG_CHAT_ID, msg.document.file_id);
-    if (msg.audio) await sendAudio(LOG_CHAT_ID, msg.audio.file_id);
     if (msg.video_note) await sendVideoNote(LOG_CHAT_ID, msg.video_note.file_id);
     if (msg.sticker) await sendSticker(LOG_CHAT_ID, msg.sticker.file_id);
     if (msg.location) await sendLocation(LOG_CHAT_ID, msg.location.latitude, msg.location.longitude);

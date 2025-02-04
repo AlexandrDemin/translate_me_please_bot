@@ -309,10 +309,14 @@ async function convertAudio(inputBuffer, fromFormat, toFormat) {
   try {
     // Check and copy ffmpeg if needed
     const { readdir } = await import('fs/promises');
-    const tmpContents = await readdir('/tmp');
+    let tmpContents = await readdir('/tmp');
+    console.log('tmpContents: ', tmpContents);
     if (!tmpContents.includes('ffmpeg')) {
       await copyFile(join(process.cwd(), 'bin', 'ffmpeg'), ffmpegPath);
       await execAsync('chmod +x /tmp/ffmpeg');
+      tmpContents = await readdir('/tmp');
+      ffmpeg.setFfmpegPath(ffmpegPath);
+      console.log('tmpContents: ', tmpContents);
     }
 
     // Write input buffer to temporary file

@@ -2,11 +2,12 @@ import OpenAI from 'openai';
 import { Anthropic } from '@anthropic-ai/sdk';
 import axios from 'axios';
 import ffmpeg from 'fluent-ffmpeg';
-import { writeFile, unlink } from 'fs/promises';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { writeFile, unlink, copyFile } from 'fs/promises';
 import { join } from 'path';
 
-// Set ffmpeg path
-ffmpeg.setFfmpegPath('/tmp/ffmpeg');
+const execAsync = promisify(exec);
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
@@ -303,9 +304,19 @@ async function sendContact(chatId, phoneNumber, firstName, options = {}) {
 
 async function convertAudio(inputBuffer, fromFormat, toFormat) {
 
+  let ffmpegPath = '/tmp/ffmpeg';
+
   try {
     const { readdir } = await import('fs/promises');
-    console.log('tmp contents:', await readdir('/tmp'));
+    let tmpContents = await readdir('/tmp');
+    if (!tmpContents.includes('ffmpeg')) {
+      await copyFile(join(process.cwd(), 'bin', 'ffmpeg'), ffmpegPath);
+      await execAsync(`chmod +x ${ffmpegPath}`);
+    }
+    
+    // Set ffmpeg path after copying
+    ffmpeg.setFfmpegPath(ffmpegPath);
+
   } catch (e) {
     console.error('readdir error:', e);
   }
